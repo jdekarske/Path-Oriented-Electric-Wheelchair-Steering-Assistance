@@ -44,7 +44,7 @@ mean = cv2.mean(middleroi)
 print(mean)
 print(cv2.mean(lab))
 print(cv2.mean(image))
-mode = np.array([1,1,1])
+mode = np.array([200,200,200])
 I = 1
 
 while(1):
