@@ -4,6 +4,7 @@ import cv2
 # from picamera import PiCamera
 import argparse
 import RPi.GPIO as GPIO ## Import GPIO library
+import time
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -31,7 +32,44 @@ channels = [red_r, yellow_r2, yellow_r,
 GPIO.setup(channels, GPIO.OUT)
 
 #is there a better way to do this?
-def panels(Cx, Cy):
+#signalling leds
+def ledflash():
+    GPIO.output(red_l,True)
+    time.sleep(.1)
+    GPIO.output(yellow_l2,True)
+    time.sleep(.1)
+    GPIO.output(yellow_l,True)
+    time.sleep(.1)
+    GPIO.output(green_l,True)
+    time.sleep(.1)
+    GPIO.output(green,True)
+    time.sleep(.1)
+    GPIO.output(green_r,True)
+    time.sleep(.1)
+    GPIO.output(yellow_r,True)
+    time.sleep(.1)
+    GPIO.output(yellow_r2,True)
+    time.sleep(.1)
+    GPIO.output(red_r,True)
+    time.sleep(.1)
+    GPIO.output(red_r,False)
+    time.sleep(.1)
+    GPIO.output(yellow_r2,False)
+    time.sleep(.1)
+    GPIO.output(yellow_r,False)
+    time.sleep(.1)
+    GPIO.output(green_r,False)
+    time.sleep(.1)
+    GPIO.output(green,False)
+    time.sleep(.1)
+    GPIO.output(green_l,False)
+    time.sleep(.1)
+    GPIO.output(yellow_l2,False)
+    time.sleep(.1)
+    GPIO.output(red_l,False)
+    time.sleep(.1)
+    
+def ledarray(Cx, Cy):
     GPIO.output(channels,False)
     if Cx < 160:
         print('5')
@@ -60,14 +98,19 @@ def panels(Cx, Cy):
     else:
         print('5')
         GPIO.output(red_r,True)
+        
 #constants
 mode = np.array([65,10,6])
 totaltime = 0
 loops = 0
-
+count = 0
+fps = 0.0
+ledflash()
 while(cap.isOpened()):
     e1 = cv2.getTickCount() #timer
     ret, frame = cap.read()
+
+    # press esc to exit gracefully
     k = cv2.waitKey(2) & 0xFF
     if k == 27:
         break
@@ -84,15 +127,15 @@ while(cap.isOpened()):
     rows, columns, c = lab.shape
     middleroi = lab[(int(rows*.8)):rows , (int(columns*.33)):(int(columns*.66))]
     mean = cv2.mean(middleroi)
-    #mean,stddev = cv2.meanStdDev(middleroi)
-    ##print(mean)
-    ##print(stddev)
-
-    #check for shadow above roi
-    ##shad_roi = lab[(rows*.6):(rows*.8) , (columns*.33):(columns*.66)]
-    ##shad_mean,shad_stddev = cv2.meanStdDev(shad_roi)
-    ##print(shad_mean)
-    ##print(shad_stddev)
+##    mean,stddev = cv2.meanStdDev(middleroi)
+##    print(mean)
+##    print(stddev)
+##
+##    #check for shadow above roi
+##    shad_roi = lab[(rows*.6):(rows*.8) , (columns*.33):(columns*.66)]
+##    shad_mean,shad_stddev = cv2.meanStdDev(shad_roi)
+##    print(shad_mean)
+##    print(shad_stddev)
 
     #establish range of acceptable colors
     lowermean = np.array([mean[0]-mode[0],mean[1]-mode[1],mean[2]-mode[2]])
@@ -116,7 +159,7 @@ while(cap.isOpened()):
     M = cv2.moments(contours[biggest][:])
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
-    panels(cX,cY)
+    ledarray(cX,cY)
 
     # draw the contour and center of the shape on the image
     cv2.circle(image, (cX, cY), 7, (255, 0, 255), -1)
@@ -130,10 +173,16 @@ while(cap.isOpened()):
     time = (e2 - e1)/ cv2.getTickFrequency()
     totaltime += time
     loops += 1
-
+    count += 1
+    if count > 2:
+        fps = loops/time
+        print(fps)
+        count = 0
+        loops = 0
+        totaltime = 0
     #display frames per sec
-    fps = loops/time    
-    cv2.putText(eroded,str(fps),(50,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2)
+    
+##    cv2.putText(eroded,str(int(fps)),(50,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),2)
 
 ###record video
 ##    if ret==True:
