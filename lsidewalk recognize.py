@@ -1,3 +1,4 @@
+import io
 import numpy as np
 import cv2
 import picamera
@@ -14,26 +15,30 @@ totaltime = 0.0
 loops = 0
 count = 0
 fps = 0.0
+resolution = (640, 480)
+
 
 button.ledflash()
 button.menu()
 
 quitloop = 0
-with picamera.PiCamera() as camera:
-    camera.resolution = (640, 480)
-    camera.framerate = 24
-    output = np.empty((640, 480, 3), dtype=np.uint8)
-    while(quitloop == 0):
-        camera.capture(output, 'rgb')
+stream = io.BytesIO()
+with picamera.PiCamera(resolution=resolution) as camera:
+    #camera.start_preview()
+    while(quitloop == 0): # and camera._check_camera_open()
+        camera.capture(stream, format='jpeg')
         e1 = cv2.getTickCount() #timer
-        image = output
-        output = np.empty((640, 480, 3), dtype=np.uint8)
+        # Construct a numpy array from the stream
+        data = np.fromstring(stream.getvalue(), dtype=np.uint8)
+        # "Decode" the image from the array, preserving colour
+        image = cv2.imdecode(data, 1)
+        stream = io.BytesIO()
 
         # press esc to exit gracefully
         k = cv2.waitKey(2) & 0xFF
         if k == 27:
             break
-        print("here")
+
         # blur then convert to LAB format
         #blurred = cv2.GaussianBlur(image, (5, 5), 0)
         lab = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
@@ -128,8 +133,7 @@ with picamera.PiCamera() as camera:
 
 #cleanup
 GPIO.cleanup()
-cap.release()
-out.release()
+##cap.release()
 cv2.destroyAllWindows()
 
 
