@@ -3,110 +3,30 @@ import cv2
 # from picamera.array import PiRGBArray
 # from picamera import PiCamera
 import argparse
-import RPi.GPIO as GPIO ## Import GPIO library
-import time
+import button
+import RPi.GPIO as GPIO
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", help = "path to the video")
 args = vars(ap.parse_args())
 
-
+#video set up
 cap = cv2.VideoCapture(args["video"])
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('output.avi',fourcc, 20.0, (640,480))
-
-GPIO.setmode(GPIO.BOARD) ## Use board pin numbering
-red_r    = 35
-yellow_r2= 33
-yellow_r = 31
-green_r  = 29
-green    = 23
-green_l  = 21
-yellow_l = 19
-yellow_l2= 15
-red_l    = 13
-channels = [red_r, yellow_r2, yellow_r,
-            green_r, green, green_l,
-            yellow_l, yellow_l2, red_l]
-GPIO.setup(channels, GPIO.OUT)
-
-#is there a better way to do this?
-#signalling leds
-def ledflash():
-    GPIO.output(red_l,True)
-    time.sleep(.1)
-    GPIO.output(yellow_l2,True)
-    time.sleep(.1)
-    GPIO.output(yellow_l,True)
-    time.sleep(.1)
-    GPIO.output(green_l,True)
-    time.sleep(.1)
-    GPIO.output(green,True)
-    time.sleep(.1)
-    GPIO.output(green_r,True)
-    time.sleep(.1)
-    GPIO.output(yellow_r,True)
-    time.sleep(.1)
-    GPIO.output(yellow_r2,True)
-    time.sleep(.1)
-    GPIO.output(red_r,True)
-    time.sleep(.1)
-    GPIO.output(red_r,False)
-    time.sleep(.1)
-    GPIO.output(yellow_r2,False)
-    time.sleep(.1)
-    GPIO.output(yellow_r,False)
-    time.sleep(.1)
-    GPIO.output(green_r,False)
-    time.sleep(.1)
-    GPIO.output(green,False)
-    time.sleep(.1)
-    GPIO.output(green_l,False)
-    time.sleep(.1)
-    GPIO.output(yellow_l2,False)
-    time.sleep(.1)
-    GPIO.output(red_l,False)
-    time.sleep(.1)
-    
-def ledarray(Cx, Cy):
-    GPIO.output(channels,False)
-    if Cx < 160:
-        print('5')
-        GPIO.output(red_l,True)
-    elif Cx < 210:
-        print('4')
-        GPIO.output(yellow_l2,True)
-    elif Cx < 260:
-        print('3')
-        GPIO.output(yellow_l,True)
-    elif Cx < 300:
-        print('2')
-        GPIO.output(green_l,True)
-    elif Cx < 340:
-        print('1')
-        GPIO.output(green,True)
-    elif Cx < 380:
-        print('2')
-        GPIO.output(green_r,True)
-    elif Cx < 430:
-        print('3')
-        GPIO.output(yellow_r,True)
-    elif Cx < 480:
-        print('4')
-        GPIO.output(yellow_r2,True)
-    else:
-        print('5')
-        GPIO.output(red_r,True)
         
 #constants
 mode = np.array([65,10,6])
-totaltime = 0
+totaltime = 0.0
 loops = 0
 count = 0
 fps = 0.0
-ledflash()
-while(cap.isOpened()):
+
+button.ledflash()
+button.menu()
+quitloop = 0
+while(cap.isOpened() & quitloop == 0):
     e1 = cv2.getTickCount() #timer
     ret, frame = cap.read()
 
@@ -159,7 +79,7 @@ while(cap.isOpened()):
     M = cv2.moments(contours[biggest][:])
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
-    ledarray(cX,cY)
+    button.ledarray(cX,cY)
 
     # draw the contour and center of the shape on the image
     cv2.circle(image, (cX, cY), 7, (255, 0, 255), -1)
