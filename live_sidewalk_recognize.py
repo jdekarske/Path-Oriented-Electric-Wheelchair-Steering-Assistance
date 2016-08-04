@@ -123,16 +123,16 @@ def blink(color):
 def main(center, record):
 
     #constants
-    mode = np.array([65,10,6])
+    mode = np.array([65,10,6]) #inrange components for Lab. Found by doing a bunch of manual tests.
     totaltime = 0.0
     count = 0
     fps = 0.0
     resolution = (640, 480)
     totalfps = []
-    global menuv
+    global menuv #need these to communicate with the button
     global buttonpress
     
-    #video set up
+    #video recording set up
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     filename = '/home/pi/REU/Path-Oriented-Electric-Wheelchair-Steering-Assistance/Output/' + time.strftime('%Y%m%d_%H%M%S') + '.avi'
     out = cv2.VideoWriter(filename,fourcc, 6.0, (640,480))
@@ -141,7 +141,7 @@ def main(center, record):
     buttonpress = 0
     stream = io.BytesIO()
     with picamera.PiCamera(resolution=resolution) as camera:
-        #camera.start_preview()
+        #camera.start_preview() #enable to see camera on screen, doesn't work with CLI
         while(buttonpress == 0): # and camera._check_camera_open()
             camera.capture(stream, format='jpeg')
             e1 = cv2.getTickCount() #timer
@@ -149,25 +149,19 @@ def main(center, record):
             # Construct a numpy array from the stream
             data = np.fromstring(stream.getvalue(), dtype=np.uint8)
 
-            # "Decode" the image from the array, preserving colour
+            # "Decode" the image from the array
             image = cv2.imdecode(data, 1)
             stream = io.BytesIO()
 
-            # press esc to exit gracefully
-            k = cv2.waitKey(2) & 0xFF
-            if k == 27:
-                break
-
-            # blur then convert to LAB format
-            #blurred = cv2.GaussianBlur(image, (5, 5), 0)
+            # convert to lab format
             lab = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
              
             # establish roi in middle of image
             rows, columns, c = lab.shape
             middleroi = lab[(int(rows*.8)):rows , (int(columns*.33)):(int(columns*.66))]
-            mean = cv2.mean(middleroi)
 
             #establish range of acceptable colors
+            mean = cv2.mean(middleroi)
             lowermean = np.array([mean[0]-mode[0],mean[1]-mode[1],mean[2]-mode[2]])
             uppermean = np.array([mean[0]+mode[0],mean[1]+mode[1],mean[2]+mode[2]])
 
@@ -177,7 +171,7 @@ def main(center, record):
             emask1 = cv2.erode(mask,None, iterations=8)
             emask = cv2.dilate(emask1,None, iterations=12)
 
-            #assemble better shape
+            #assemble better shape, select biggest area
             areas = []
             _, contours, hierarchy = cv2.findContours(emask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
             for i, c in enumerate(contours):
@@ -193,16 +187,16 @@ def main(center, record):
 
             # draw the contour and center of the shape on the image
             cv2.circle(image, (cX, cY), 7, (255, 0, 255), -1)
-#            cv2.drawContours(image, contours, biggest, (0,255,0), 1)
+#            cv2.drawContours(image, contours, biggest, (0,255,0), 1) #outlines the largest contour, not necessary
             eroded = cv2.bitwise_and(image,image, mask= emask)
 #            cv2.imshow('eroded',eroded)
 
-            #end timer, display frames per second
+            #end timer, display frames per second taking the average over 10 frames
             e2 = cv2.getTickCount()
             looptime = (e2 - e1)/ cv2.getTickFrequency()
             totaltime += looptime
             count += 1
-            if count > 10:
+            if count > 10: 
                 fps = count/totaltime
                 count = 0
                 totaltime = 0
