@@ -18,5 +18,6 @@
 
 # TODO (`live_sidewalk_recognize.py`):
 * Find more graceful way to use `onbuttonpress()`.
+* Add cliff detection. When the centroid falls below a certain vertical coordinate.
 * Add shadow detection. See article: ["Shadow Detection and Removal from a Single Image Using LAB Color Space"](url=http://www.degruyter.com/view/j/cait.2013.13.issue-1/cait-2013-0009/cait-2013-0009.xml)
 * Improve framerate/optimize.
